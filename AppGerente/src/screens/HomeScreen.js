@@ -21,12 +21,12 @@ export default function HomeScreen({navigation}){
             <Text style ={styles.buttomText}> Listar Produtos</Text>
         </TouchableOpacity>
      
-        <TouchableOpacity
+        {/* <TouchableOpacity
             style ={styles.styleButtom}
             onPress={()=>navigation.navigate("Detalhes")}
             >
             <Text style ={styles.buttomText}> Detalhes dos Produtos</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
    
     </View>
     );

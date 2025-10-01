@@ -1,13 +1,17 @@
 import React, { useContext } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import {useNavigation} from "@react-navigation/native"
 
 import { ProdutosContext } from "../components/ProdutosContext";
 
 export default function ListaScreen() {
-  const { listaDeProdutos } = useContext(ProdutosContext);
+  const {listaDeProdutos} = useContext(ProdutosContext);
+  const navigation = useNavigation();
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.itemContainer}>
+    <TouchableOpacity style={styles.itemContainer}
+    onPress={()=>{navigation.navigate('Detalhes', {produto:item}); }}
+    >
       <Text style={styles.produto}>Produto: {item.nome}</Text>
       <Text style={styles.precoProduto}>Preço: R$ {item.preco.toFixed(2)}</Text>
       <Text style={styles.precoProduto}>Descrição: {item.descricao}</Text>
