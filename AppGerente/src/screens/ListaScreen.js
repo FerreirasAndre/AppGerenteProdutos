@@ -1,36 +1,77 @@
-import React, { useContext } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import React, {useEffect, useState } from "react";
+import { View, Text, StyleSheet, FlatList, Button, Alert } from "react-native";
 import {useNavigation} from "@react-navigation/native"
-
-import { ProdutosContext } from "../components/ProdutosContext";
+import {db} from "../components/firebaseConnections"
+import { collection, getDocs, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 
 export default function ListaScreen() {
-  const {listaDeProdutos} = useContext(ProdutosContext);
+  const [produtos, setProdutos] = useState([]);
   const navigation = useNavigation();
 
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "produtos"), (snapshot) => {
+      const lista = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProdutos(lista);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
+   const excluirProduto = async (id) => {
+    Alert.alert("Confirmar Exclusão", "Deseja realmente excluir este produto?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          await deleteDoc(doc(db, "produtos", id));
+        },
+      },
+    ]);
+  };
+
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.itemContainer}
-    onPress={()=>{navigation.navigate('Detalhes', {produto:item}); }}
-    >
+    <View>
       <Text style={styles.produto}>Produto: {item.nome}</Text>
-      <Text style={styles.precoProduto}>Preço: R$ {item.preco.toFixed(2)}</Text>
-      <Text style={styles.precoProduto}>Descrição: {item.descricao}</Text>
-    </TouchableOpacity>
+    <Text style={styles.precoProduto}>
+      Preço: R$ {item.preco ? item.preco.toFixed(2) : "0.00"}
+    </Text>
+    <Text style={styles.precoProduto}>Descrição: {item.descricao}</Text>
+
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+      <Button
+        title="Editar"
+        color="#1E90FF"
+        onPress={() => navigation.navigate("Cadastro", { produto: item })}
+      />
+      <Button
+        title="Excluir"
+        color="#FF3B30"
+        onPress={() => excluirProduto(item.id)}
+      />
+    </View>
+    </View>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Meus Produtos</Text>
-
-      {listaDeProdutos.length > 0 ? (
+     
+      {produtos.length ===0 ?(
+        <Text>Nenhum produto cadastrado!</Text>
+      ): (
         <FlatList
-          data={listaDeProdutos}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+        data={produtos}
+        renderItem={renderItem}
+        keyExtractor={(item)=> item.id}
         />
-      ) : (
-        <Text style={styles.noDataText}>Nenhum produto cadastrado!</Text>
       )}
+
     </View>
   );
 }

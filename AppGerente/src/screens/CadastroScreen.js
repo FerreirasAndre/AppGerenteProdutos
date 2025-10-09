@@ -1,50 +1,62 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Button, StyleSheet, Alert, TextInput, Platform } from "react-native";
-import { ProdutosContext } from "../components/ProdutosContext";
+import { db } from "../components/firebaseConnections";
+import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 
-export default function CadastroScreen({ navigation }) {
+export default function CadastroScreen({ navigation, route }) {
+  const produtoParaEditar = route.params?.produto || null;
+
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
   const [descricao, setDescricao] = useState("");
 
-  const { adicionarProduto } = useContext(ProdutosContext);
+  useEffect(() => {
+    if (produtoParaEditar) {
+      setNome(produtoParaEditar.nome);
+      setPreco(produtoParaEditar.preco.toString());
+      setDescricao(produtoParaEditar.descricao);
+    }
+  }, [produtoParaEditar]);
 
-  const handleCadastro = () => {
+  const handleSalvar = async () => {
     if (nome === "" || preco === "" || descricao === "") {
-      Platform.OS === "web"
-        ? window.alert("Por favor, preencha todos os campos.")
-        : Alert.alert("Erro!", "Por favor, preencha todos os campos.");
+      const msg = "Por favor, preencha todos os campos.";
+      Platform.OS === "web" ? window.alert(msg) : Alert.alert("Erro", msg);
       return;
     }
 
     const precoConvertido = parseFloat(preco);
     if (isNaN(precoConvertido)) {
-      Platform.OS === "web"
-        ? window.alert("Digite um preço válido.")
-        : Alert.alert("Erro!", "Digite um preço válido.");
+      const msg = "Digite um preço válido.";
+      Platform.OS === "web" ? window.alert(msg) : Alert.alert("Erro", msg);
       return;
     }
 
-    const novoProduto = {
-      id: Math.random().toString(),
-      nome,
-      preco: precoConvertido,
-      descricao,
-    };
+    try {
+      if (produtoParaEditar) {
+        const ref = doc(db, "produtos", produtoParaEditar.id);
+        await updateDoc(ref, { nome, preco: precoConvertido, descricao });
+        Platform.OS === "web"
+          ? window.alert("Produto atualizado!")
+          : Alert.alert("Sucesso", "Produto atualizado!");
+      } else {
+        await addDoc(collection(db, "produtos"), {
+          nome,
+          preco: precoConvertido,
+          descricao,
+        });
+        Platform.OS === "web"
+          ? window.alert("Produto cadastrado!")
+          : Alert.alert("Sucesso", "Produto cadastrado!");
+      }
 
-    adicionarProduto(novoProduto);
-
-    Platform.OS === "web"
-      ? window.alert("Produto cadastrado com sucesso!")
-      : Alert.alert("Sucesso!", "Produto cadastrado com sucesso!");
-
-    setNome("");
-    setPreco("");
-    setDescricao("");
-
-    // opcional → ir direto para a lista após cadastro
-  //   navigation.navigate("Lista");
-   };
+      navigation.navigate("Lista");
+    } catch (error) {
+      console.error(error);
+      const msg = "Falha ao salvar o produto!";
+      Platform.OS === "web" ? window.alert(msg) : Alert.alert("Erro", msg);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -74,22 +86,17 @@ export default function CadastroScreen({ navigation }) {
         multiline
       />
 
-      <Button title="Cadastrar" onPress={handleCadastro} />
+      <Button
+        title={produtoParaEditar ? "Atualizar" : "Cadastrar"}
+        onPress={handleSalvar}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1,
-    padding: 20,
-    backgroundColor: "#f0f0f0"
-  },
-
-  styleText: { fontSize: 16,
-    marginBottom: 5,
-  marginTop: 15
-  },
-
+  container: { flex: 1, padding: 20, backgroundColor: "#f0f0f0" },
+  styleText: { fontSize: 16, marginBottom: 5, marginTop: 15 },
   input: {
     height: 40,
     borderColor: "gray",
